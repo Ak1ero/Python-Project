@@ -1,0 +1,701 @@
+{% extends "admin/admin_layout.html" %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 20px;
+    }
+    
+    .top-item {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.2s;
+    }
+    
+    .top-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .cuisine-badge {
+        font-size: 0.85rem;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" id="dashboard-content">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Analytics Dashboard</h1>
+        <div>
+            <a href="#" id="export-pdf" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-download fa-sm text-white-50 me-1"></i> Export Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Recipe Stats Row -->
+    <div class="row mb-4">
+        <!-- Recipe by Cuisine Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card dashboard-card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recipes by Cuisine Type</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="cuisineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipe Trend Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card dashboard-card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recipe Creation Trend (Last 6 Months)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="recipeTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Recipes Row -->
+    <div class="row mb-4">
+        <!-- Top Liked Recipes -->
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card dashboard-card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Most Liked Recipes</h6>
+                </div>
+                <div class="card-body">
+                    {% if top_liked_recipes %}
+                        {% for recipe in top_liked_recipes %}
+                            <div class="top-item bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0"><a href="{{ url_for('view_recipe', recipe_id=recipe.id) }}" target="_blank">{{ recipe.title }}</a></h6>
+                                        <small class="text-muted">by {{ recipe.author_name }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="mb-1">
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-heart me-1"></i> {{ recipe.likes_count }} likes
+                                            </span>
+                                        </div>
+                                        <div>
+                                            {% if recipe.cuisine_type == 'International' %}
+                                                <span class="badge bg-success cuisine-badge">
+                                                    <i class="fas fa-globe-americas me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% elif recipe.cuisine_type == 'Luzon' %}
+                                                <span class="badge bg-primary cuisine-badge">
+                                                    <i class="fas fa-map-marker-alt me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% elif recipe.cuisine_type == 'Visayas' %}
+                                                <span class="badge bg-danger cuisine-badge">
+                                                    <i class="fas fa-map-marker-alt me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% elif recipe.cuisine_type == 'Mindanao' %}
+                                                <span class="badge bg-warning text-dark cuisine-badge">
+                                                    <i class="fas fa-map-marker-alt me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary cuisine-badge">
+                                                    <i class="fas fa-utensils me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-heart-broken fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No recipes with likes found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Commented Recipes -->
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card dashboard-card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Most Commented Recipes</h6>
+                </div>
+                <div class="card-body">
+                    {% if top_commented_recipes %}
+                        {% for recipe in top_commented_recipes %}
+                            <div class="top-item bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0"><a href="{{ url_for('view_recipe', recipe_id=recipe.id) }}" target="_blank">{{ recipe.title }}</a></h6>
+                                        <small class="text-muted">by {{ recipe.author_name }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="mb-1">
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-comment me-1"></i> {{ recipe.comments_count }} comments
+                                            </span>
+                                        </div>
+                                        <div>
+                                            {% if recipe.cuisine_type == 'International' %}
+                                                <span class="badge bg-success cuisine-badge">
+                                                    <i class="fas fa-globe-americas me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% elif recipe.cuisine_type == 'Luzon' %}
+                                                <span class="badge bg-primary cuisine-badge">
+                                                    <i class="fas fa-map-marker-alt me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% elif recipe.cuisine_type == 'Visayas' %}
+                                                <span class="badge bg-danger cuisine-badge">
+                                                    <i class="fas fa-map-marker-alt me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% elif recipe.cuisine_type == 'Mindanao' %}
+                                                <span class="badge bg-warning text-dark cuisine-badge">
+                                                    <i class="fas fa-map-marker-alt me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary cuisine-badge">
+                                                    <i class="fas fa-utensils me-1"></i> {{ recipe.cuisine_type }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-comments-slash fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No recipes with comments found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Trend Chart -->
+    <div class="row">
+        <div class="col-xl-12 col-lg-12">
+            <div class="card dashboard-card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">User Registration Trend (Last 6 Months)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="userTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Add Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<!-- Add jsPDF and html2canvas libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cuisine Chart
+        const cuisineData = JSON.parse('{{ cuisine_data|tojson|safe }}');
+        const cuisineLabels = cuisineData.map(item => item.cuisine_type);
+        const cuisineCounts = cuisineData.map(item => item.count);
+        
+        const cuisineColors = cuisineLabels.map(cuisine => {
+            switch(cuisine) {
+                case 'International': return '#28a745'; // Green
+                case 'Luzon': return '#007bff'; // Blue
+                case 'Visayas': return '#dc3545'; // Red
+                case 'Mindanao': return '#ffc107'; // Yellow
+                default: return '#6c757d'; // Gray
+            }
+        });
+        
+        const cuisineChart = new Chart(
+            document.getElementById('cuisineChart'),
+            {
+                type: 'pie',
+                data: {
+                    labels: cuisineLabels,
+                    datasets: [{
+                        data: cuisineCounts,
+                        backgroundColor: cuisineColors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        
+        // Recipe Trend Chart
+        const monthlyRecipes = JSON.parse('{{ monthly_recipes|tojson|safe }}');
+        const recipeMonths = monthlyRecipes.map(item => {
+            const [year, month] = item.month.split('-');
+            return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        });
+        const recipeCounts = monthlyRecipes.map(item => item.count);
+        
+        const recipeTrendChart = new Chart(
+            document.getElementById('recipeTrendChart'),
+            {
+                type: 'line',
+                data: {
+                    labels: recipeMonths,
+                    datasets: [{
+                        label: 'New Recipes',
+                        data: recipeCounts,
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        );
+        
+        // User Trend Chart
+        const monthlyUsers = JSON.parse('{{ monthly_users|tojson|safe }}');
+        const userMonths = monthlyUsers.map(item => {
+            const [year, month] = item.month.split('-');
+            return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        });
+        const userCounts = monthlyUsers.map(item => item.count);
+        
+        const userTrendChart = new Chart(
+            document.getElementById('userTrendChart'),
+            {
+                type: 'bar',
+                data: {
+                    labels: userMonths,
+                    datasets: [{
+                        label: 'New Users',
+                        data: userCounts,
+                        backgroundColor: '#36b9cc',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        
+        // Export PDF functionality
+        document.getElementById('export-pdf').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Show loading indicator
+            const exportBtn = this;
+            const originalText = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin fa-sm text-white-50 me-1"></i> Generating PDF...';
+            exportBtn.disabled = true;
+            
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // Set up dimensions
+                const pageWidth = 210;
+                const pageHeight = 297;
+                const margin = 20;
+                
+                // Get current date
+                const today = new Date();
+                const formattedDate = today.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                // ===== Create a simple, clean PDF =====
+                
+                // Title
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(18);
+                pdf.text('Recipe Blog Analytics Report', margin, margin);
+                
+                // Date
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.text(`Generated: ${formattedDate}`, margin, margin + 8);
+                
+                // Separator line
+                pdf.setDrawColor(220, 220, 220);
+                pdf.setLineWidth(0.5);
+                pdf.line(margin, margin + 12, pageWidth - margin, margin + 12);
+                
+                // Get data from the analytics charts
+                try {
+                    // Parse data from Jinja variables
+                    const cuisineData = JSON.parse('{{ cuisine_data|tojson|safe }}');
+                    const monthlyRecipes = JSON.parse('{{ monthly_recipes|tojson|safe }}');
+                    const monthlyUsers = JSON.parse('{{ monthly_users|tojson|safe }}');
+                    const topLikedRecipes = JSON.parse('{{ top_liked_recipes|tojson|safe }}');
+                    const topCommentedRecipes = JSON.parse('{{ top_commented_recipes|tojson|safe }}');
+                    
+                    // Create sections for the PDF
+                    // 1. Cuisine distribution section
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(14);
+                    pdf.text('Recipes by Cuisine Type', margin, margin + 25);
+                    
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+                    
+                    let y = margin + 35;
+                    let totalRecipes = 0;
+                    
+                    // Calculate total for percentages
+                    cuisineData.forEach(item => {
+                        totalRecipes += item.count;
+                    });
+                    
+                    // Draw cuisine data as a table
+                    pdf.setFillColor(240, 240, 240);
+                    pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                    
+                    // Table headers
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Cuisine Type', margin + 5, y);
+                    pdf.text('Count', pageWidth - margin - 50, y);
+                    pdf.text('Percentage', pageWidth - margin - 25, y);
+                    
+                    y += 10;
+                    
+                    // Table rows
+                    pdf.setFont('helvetica', 'normal');
+                    cuisineData.forEach(item => {
+                        const percentage = ((item.count / totalRecipes) * 100).toFixed(1) + '%';
+                        
+                        // Add background color alternating rows
+                        if ((y / 10) % 2 === 0) {
+                            pdf.setFillColor(248, 248, 248);
+                            pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                        }
+                        
+                        pdf.text(item.cuisine_type, margin + 5, y);
+                        pdf.text(item.count.toString(), pageWidth - margin - 50, y);
+                        pdf.text(percentage, pageWidth - margin - 25, y);
+                        
+                        y += 10;
+                    });
+                    
+                    // 2. Recipe Trends section
+                    y += 10;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(14);
+                    pdf.text('Recipe Creation Trend (Last 6 Months)', margin, y);
+                    
+                    y += 10;
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+                    
+                    // Draw recipe trend data as a table
+                    pdf.setFillColor(240, 240, 240);
+                    pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                    
+                    // Table headers
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Month', margin + 5, y);
+                    pdf.text('New Recipes', pageWidth - margin - 40, y);
+                    
+                    y += 10;
+                    
+                    // Table rows
+                    pdf.setFont('helvetica', 'normal');
+                    monthlyRecipes.forEach(item => {
+                        // Format month
+                        const [year, month] = item.month.split('-');
+                        const date = new Date(year, month - 1);
+                        const formattedMonth = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                        
+                        // Add background color alternating rows
+                        if ((y / 10) % 2 === 0) {
+                            pdf.setFillColor(248, 248, 248);
+                            pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                        }
+                        
+                        pdf.text(formattedMonth, margin + 5, y);
+                        pdf.text(item.count.toString(), pageWidth - margin - 40, y);
+                        
+                        y += 10;
+                    });
+                    
+                    // 3. User Registration Trend section
+                    y += 10;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(14);
+                    pdf.text('User Registration Trend (Last 6 Months)', margin, y);
+                    
+                    y += 10;
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+                    
+                    // Draw user trend data as a table
+                    pdf.setFillColor(240, 240, 240);
+                    pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                    
+                    // Table headers
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Month', margin + 5, y);
+                    pdf.text('New Users', pageWidth - margin - 40, y);
+                    
+                    y += 10;
+                    
+                    // Table rows
+                    pdf.setFont('helvetica', 'normal');
+                    monthlyUsers.forEach(item => {
+                        // Format month
+                        const [year, month] = item.month.split('-');
+                        const date = new Date(year, month - 1);
+                        const formattedMonth = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                        
+                        // Add background color alternating rows
+                        if ((y / 10) % 2 === 0) {
+                            pdf.setFillColor(248, 248, 248);
+                            pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                        }
+                        
+                        pdf.text(formattedMonth, margin + 5, y);
+                        pdf.text(item.count.toString(), pageWidth - margin - 40, y);
+                        
+                        y += 10;
+                    });
+                    
+                    // Check if we need to add a new page for top recipes
+                    if (y > pageHeight - 60) {
+                        pdf.addPage();
+                        y = margin;
+                    }
+                    
+                    // 4. Top Liked Recipes section
+                    y += 10;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(14);
+                    pdf.text('Most Liked Recipes', margin, y);
+                    
+                    y += 10;
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+                    
+                    // Draw top liked recipes as a table
+                    pdf.setFillColor(240, 240, 240);
+                    pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                    
+                    // Table headers
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Recipe Title', margin + 5, y);
+                    pdf.text('Author', pageWidth - margin - 70, y);
+                    pdf.text('Likes', pageWidth - margin - 40, y);
+                    pdf.text('Cuisine', pageWidth - margin - 25, y);
+                    
+                    y += 10;
+                    
+                    // Check if we have top_liked_recipes data
+                    if (topLikedRecipes && topLikedRecipes.length > 0) {
+                        // Table rows
+                        pdf.setFont('helvetica', 'normal');
+                        topLikedRecipes.forEach(recipe => {
+                            // Handle long titles
+                            let title = recipe.title;
+                            if (title.length > 30) {
+                                title = title.substring(0, 27) + '...';
+                            }
+                            
+                            // Add background color alternating rows
+                            if ((y / 10) % 2 === 0) {
+                                pdf.setFillColor(248, 248, 248);
+                                pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                            }
+                            
+                            pdf.text(title, margin + 5, y);
+                            pdf.text(recipe.author_name, pageWidth - margin - 70, y);
+                            pdf.text(recipe.likes_count.toString(), pageWidth - margin - 40, y);
+                            pdf.text(recipe.cuisine_type, pageWidth - margin - 25, y);
+                            
+                            y += 10;
+                        });
+                    } else {
+                        pdf.text('No recipes with likes found.', margin + 5, y);
+                        y += 10;
+                    }
+                    
+                    // Check if we need to add a new page for commented recipes
+                    if (y > pageHeight - 60) {
+                        pdf.addPage();
+                        y = margin;
+                    }
+                    
+                    // 5. Top Commented Recipes section
+                    y += 10;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(14);
+                    pdf.text('Most Commented Recipes', margin, y);
+                    
+                    y += 10;
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+                    
+                    // Draw top commented recipes as a table
+                    pdf.setFillColor(240, 240, 240);
+                    pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                    
+                    // Table headers
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Recipe Title', margin + 5, y);
+                    pdf.text('Author', pageWidth - margin - 70, y);
+                    pdf.text('Comments', pageWidth - margin - 40, y);
+                    pdf.text('Cuisine', pageWidth - margin - 25, y);
+                    
+                    y += 10;
+                    
+                    // Check if we have top_commented_recipes data
+                    if (topCommentedRecipes && topCommentedRecipes.length > 0) {
+                        // Table rows
+                        pdf.setFont('helvetica', 'normal');
+                        topCommentedRecipes.forEach(recipe => {
+                            // Handle long titles
+                            let title = recipe.title;
+                            if (title.length > 30) {
+                                title = title.substring(0, 27) + '...';
+                            }
+                            
+                            // Add background color alternating rows
+                            if ((y / 10) % 2 === 0) {
+                                pdf.setFillColor(248, 248, 248);
+                                pdf.rect(margin, y - 5, pageWidth - (margin * 2), 10, 'F');
+                            }
+                            
+                            pdf.text(title, margin + 5, y);
+                            pdf.text(recipe.author_name, pageWidth - margin - 70, y);
+                            pdf.text(recipe.comments_count.toString(), pageWidth - margin - 40, y);
+                            pdf.text(recipe.cuisine_type, pageWidth - margin - 25, y);
+                            
+                            y += 10;
+                        });
+                    } else {
+                        pdf.text('No recipes with comments found.', margin + 5, y);
+                        y += 10;
+                    }
+                    
+                    // Footer with page numbers
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(8);
+                        pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - margin);
+                    }
+                    
+                    // Save the PDF
+                    pdf.save('recipe_blog_analytics.pdf');
+                    console.log("PDF generated successfully");
+                    
+                } catch (dataError) {
+                    console.error("Error processing analytics data:", dataError);
+                    alert("Error creating PDF: Cannot process analytics data.");
+                }
+                
+                // Reset button state
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+                
+            } catch (error) {
+                console.error("Error in PDF generation process:", error);
+                alert("An error occurred while generating the PDF. Please try again.");
+                
+                // Reset button state
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+            }
+        });
+    });
+</script>
+{% endblock %} 
