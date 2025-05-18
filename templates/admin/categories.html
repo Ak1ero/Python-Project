@@ -124,20 +124,6 @@
                                                 <li><a class="dropdown-item" href="#" data-recipe-id="{{ recipe.id }}" onclick="event.preventDefault(); viewRecipeDetails(this.getAttribute('data-recipe-id'))"><i class="fas fa-eye me-2"></i>View Details</a></li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item text-warning" href="#" 
-                                                       data-recipe-id="{{ recipe.id }}" 
-                                                       data-recipe-title="{{ recipe.title }}"
-                                                       data-feature="{% if recipe.is_featured %}false{% else %}true{% endif %}"
-                                                       onclick="event.preventDefault(); confirmFeatureRecipe(
-                                                           this.getAttribute('data-recipe-id'), 
-                                                           this.getAttribute('data-recipe-title'), 
-                                                           this.getAttribute('data-feature') === 'true'
-                                                       )">
-                                                        <i class="fas {% if recipe.is_featured %}fa-star-half-alt{% else %}fa-star{% endif %} me-2"></i>
-                                                        {% if recipe.is_featured %}Remove from Featured{% else %}Add to Featured{% endif %}
-                                                    </a>
-                                                </li>
-                                                <li>
                                                     <a class="dropdown-item text-danger" href="#" 
                                                        data-recipe-id="{{ recipe.id }}" 
                                                        data-recipe-title="{{ recipe.title }}"
