@@ -80,7 +80,8 @@ This is a web-based recipe blog system built with **Flask** that allows users to
 - HTML/CSS/JavaScript
 
 ## 📸 Screenshots
-> _Add screenshots of your app here!_
+![Recipe Blog Homepage](./static/images/screenshots/homepage.png)
+*Recipe Blog homepage showing the main landing page with navigation and hero section*
 
 ---
 
