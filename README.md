@@ -34,7 +34,7 @@ This is a web-based recipe blog system built with **Flask** that allows users to
 - 📱 Responsive design for all devices
 
 ## 🚦 Current Status
-- Home page with featured recipes
+- Home page
 - About page
 - Contact page
 - Basic styling and UI elements
@@ -87,6 +87,3 @@ This is a web-based recipe blog system built with **Flask** that allows users to
 
 ## 🤝 Contributing
 Contributions are welcome! Please open issues or submit pull requests for improvements.
-
-## 📄 License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
